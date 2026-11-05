@@ -405,9 +405,16 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .ft nav{display:flex;flex-direction:column;gap:10px}
 .ft nav a{font-size:14.5px;font-weight:300;color:rgba(255,255,255,.82);transition:.16s}
 .ft nav a:hover{color:var(--line)}
-.ft .addr{font-size:14.5px;font-weight:300;line-height:1.65;color:rgba(255,255,255,.72)}
-.ft .addr a{color:rgba(255,255,255,.82)}
-.ft .addr a:hover{color:var(--line)}
+/* address, email and phone as three marked rows: the icon states which is which
+   so none of them needs a label, and the hanging indent keeps the wrapped lines
+   of the address aligned under its own first line rather than under the pin. */
+.ft .cx{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.ft .cx li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:11px;align-items:start;
+  font-size:14.5px;font-weight:300;line-height:1.55;color:rgba(255,255,255,.72)}
+.ft .cx .ci{width:16px;height:16px;margin-top:2px;color:rgba(255,255,255,.5)}
+.ft .cx a{color:rgba(255,255,255,.82);border-bottom:1px solid transparent;justify-self:start;
+  transition:color .16s,border-color .16s}
+.ft .cx a:hover{color:var(--line);border-bottom-color:var(--line)}
 .ft .bot{margin-top:clamp(40px,5vw,66px);padding-top:22px;border-top:1px solid rgba(255,255,255,.18);
   display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:13px;color:rgba(255,255,255,0.52)}
 .ft .bot nav{flex-direction:row;gap:22px}
@@ -4120,10 +4127,25 @@ function p404(){
 }
 
 /* ============================ footer ============================ */
+/* 16px line icons, stroked in currentColor so they take the footer's own
+   opacity and never need a second colour value */
+var FTI={
+ pin:'<path d="M8 14.5s5-4.2 5-8a5 5 0 1 0-10 0c0 3.8 5 8 5 8Z"/>'+
+     '<circle cx="8" cy="6.4" r="1.9"/>',
+ mail:'<rect x="1.8" y="3.4" width="12.4" height="9.2" rx="1.6"/>'+
+      '<path d="m2.4 4.6 5.6 4 5.6-4"/>',
+ tel:'<path d="M3 2.4h2.4l1.2 3-1.5 1.1a8.5 8.5 0 0 0 4.4 4.4l1.1-1.5 3 1.2V13a1 1 0 0 1-1.1 1'+
+     'A11.4 11.4 0 0 1 2 3.5 1 1 0 0 1 3 2.4Z"/>'
+};
+function fti(k){
+  return '<svg class="ci" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" '+
+    'stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+FTI[k]+'</svg>';
+}
 function footerHTML(){
   return '<footer class="ft"><div class="in"><div class="top">'+
     '<div><img src="'+IMGS.logo+'" alt="GEMS Education India">'+
-    '<p class="blurb">Part of GEMS Education, one of the oldest and largest kindergarten to Grade 12 private education providers in the world.</p></div>'+
+    '<p class="blurb">One of the world\u2019s largest and most diverse private education '+
+      'providers, with over 65 years of excellence in delivering quality education.</p></div>'+
     '<div><h4>Our schools</h4><nav>'+BRANDS.map(function(b){
       return '<a href="#/brand/'+b[0]+'">'+esc(b[1])+'</a>';}).join("")+'</nav></div>'+
     '<div><h4>About</h4><nav>'+
@@ -4133,8 +4155,12 @@ function footerHTML(){
       '<a href="https://caredesk.gemseducationindia.com/caredesk/" target="_blank" '+
       'rel="noopener">CareDesk</a>'+
       '<a href="#/news">News and events</a><a href="#/careers">Careers at GEMS India</a></nav></div>'+
-    '<div><h4>Connect</h4><p class="addr">El-Tara, J M House, Orchard Ave,<br>Hiranandani Gardens, Powai,<br>Mumbai, Maharashtra 400076<br><br>'+
-      '<a href="mailto:info@gemsedu.in">info@gemsedu.in</a><br><a href="tel:+919870108853">+91 98701 08853</a></p></div>'+
+    '<div><h4>Connect</h4><ul class="cx">'+
+      '<li>'+fti("pin")+'<span>El-Tara, J M House, Orchard Ave,<br>Hiranandani Gardens, Powai,<br>'+
+        'Mumbai, Maharashtra 400076</span></li>'+
+      '<li>'+fti("mail")+'<a href="mailto:info@gemsedu.in">info@gemsedu.in</a></li>'+
+      '<li>'+fti("tel")+'<a href="tel:+919870108853">+91 98701 08853</a></li>'+
+    '</ul></div>'+
     '</div><div class="bot">'+
     '<span>&copy; 2026 GEMS Education India. All rights reserved. ADGE Educational Development Foundation.</span>'+
     '<nav><a href="#/contact">Privacy Policy</a><a href="#/contact">Terms of Use</a><a href="#/contact">Disclaimer</a></nav>'+
