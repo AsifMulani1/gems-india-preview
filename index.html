@@ -232,7 +232,8 @@ button,a{font:inherit;color:inherit;background:none;border:0;text-decoration:non
 .atlas .land path{fill:#1E3D8F;fill-opacity:var(--fill,0);stroke:#00A3E0;stroke-width:1.5;
   stroke-linejoin:round;stroke-opacity:.85;vector-effect:non-scaling-stroke}
 .atlas .apin{opacity:0;pointer-events:none}
-.atlas .apin.lit{pointer-events:auto;cursor:pointer}
+.atlas .apin.lit{cursor:pointer}
+.atlas .apin.lit .hit,.atlas .apin.lit .dot,.atlas .apin.lit .alab{pointer-events:all}
 .atlas .apin .hit{fill:transparent}
 .atlas .apin.lit:hover .dot,.atlas .apin.lit:focus .dot{fill:#fff}
 .atlas .apin.lit:hover .halo,.atlas .apin.lit:focus .halo{opacity:.34}
@@ -2032,15 +2033,67 @@ function buildAtlas(){
     .sort(function(a,b){return MAP.pts[b][1]-MAP.pts[a][1];});
   var total=0; names.forEach(function(c){ total+=byCity[c].n; });
 
+  /* Every pin carried a transparent r=40 hit circle, 28px across on a phone, while
+     Mumbai and Kalyan sit 3px apart and Jodhpur, Gurugram and Ghaziabad cluster.
+     Overlapping targets meant the pin you tapped was not the pin you got: the one
+     painted last won. Geography cannot be stretched far enough to give thirteen
+     cities a 24px target on a 346px map, so a pin claims only the space it has,
+     and the city name beside it stays the reliable target. */
+  /* Mumbai and Kalyan are 8 map units apart, so their 10 unit dots drew on top of
+     one another and only one of them could be clicked. /schools already relaxes
+     its pins for the same reason; the atlas never did. Pins move the least amount
+     that separates them, which is a few map units, and the city name beside each
+     one says which is which. */
+  var POS={};
+  (function(){
+    var MIN=26;
+    names.forEach(function(c){ POS[c]=[MAP.pts[c][0], MAP.pts[c][1]]; });
+    for(var pass=0; pass<60; pass++){
+      var moved=false;
+      for(var i=0;i<names.length;i++) for(var j=i+1;j<names.length;j++){
+        var a=POS[names[i]], b=POS[names[j]];
+        var dx=b[0]-a[0], dy=b[1]-a[1], d=Math.sqrt(dx*dx+dy*dy) || 0.01;
+        if(d>=MIN) continue;
+        var push=(MIN-d)/2, ux=dx/d, uy=dy/d;
+        a[0]-=ux*push; a[1]-=uy*push; b[0]+=ux*push; b[1]+=uy*push;
+        moved=true;
+      }
+      if(!moved) break;
+    }
+  })();
+  /* a label set by longitude alone can run straight at its nearest neighbour:
+     Tiruvuru's ran east, under Tuni's pin, and could not be clicked. A crowded
+     pin puts its name on the side the neighbour is not. */
+  function labelWest(c){
+    var p=POS[c], near=1e9, nx=0;
+    names.forEach(function(o){
+      if(o===c) return;
+      var q=POS[o], d=Math.sqrt((p[0]-q[0])*(p[0]-q[0])+(p[1]-q[1])*(p[1]-q[1]));
+      if(d<near){ near=d; nx=q[0]; }
+    });
+    if(near<140) return nx>p[0];
+    return p[0]<MAP.W*0.42;
+  }
+  function hitR(c){
+    var p=POS[c], near=1e9;
+    names.forEach(function(o){
+      if(o===c) return;
+      var q=POS[o], d=Math.sqrt((p[0]-q[0])*(p[0]-q[0])+(p[1]-q[1])*(p[1]-q[1]));
+      if(d<near) near=d;
+    });
+    return Math.max(6, Math.min(40, near/2 - 1.5));
+  }
+
   wrap.innerHTML='<svg viewBox="0 0 '+MAP.W+' '+MAP.H+'" role="img" '+
     'aria-label="'+names.length+' cities with GEMS campuses across India">'+
     '<g class="land">'+MAP.paths.map(function(d){return '<path d="'+d+'"/>';}).join("")+'</g>'+
     '<g class="pins">'+names.map(function(c,i){
-      var p=MAP.pts[c], west=p[0]<MAP.W*0.42;
+      var p=POS[c], west=labelWest(c);
       return '<a class="apin'+(byCity[c].soon?" soon":"")+'" href="'+cityHref(c)+'" '+
         'transform="translate('+p[0]+','+p[1]+')" aria-label="'+c+', '+byCity[c].n+' campus'+
         (byCity[c].n===1?'':'es')+'">'+
-        '<circle class="halo" r="30"/><circle class="dot" r="10"/><circle class="hit" r="40"/>'+
+        '<circle class="halo" r="30"/><circle class="dot" r="10"/>'+
+        '<circle class="hit" r="'+hitR(c).toFixed(1)+'"/>'+
         '<text class="alab'+(west?" w":"")+'" x="'+(west?-22:22)+'" y="9">'+
         mapLabel(c,names)+'</text></a>';
     }).join("")+'</g></svg>';
@@ -2049,7 +2102,7 @@ function buildAtlas(){
   (function(){
     var placed=[];
     [].slice.call(wrap.querySelectorAll(".apin")).forEach(function(g,i){
-      var t=g.querySelector(".alab"), bb=t.getBBox(), c=MAP.pts[names[i]];
+      var t=g.querySelector(".alab"), bb=t.getBBox(), c=POS[names[i]];
       var box={x1:c[0]+bb.x,x2:c[0]+bb.x+bb.width,y1:c[1]+bb.y,y2:c[1]+bb.y+bb.height};
       var dy=0, k=0;
       function clash(){ return placed.some(function(q){
