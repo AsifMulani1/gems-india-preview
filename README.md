@@ -12,3 +12,10 @@ by URL hash, for example `#/campus/gems-millennium-school-gurugram`.
 Content is taken from gemseducationindia.com and gemseducation.com. Nothing is invented.
 
 Source of the prototype, build script and verification gates: `~/gems-hero`.
+
+## Hosting note
+
+This copy of `index.html` carries `<meta name="robots" content="noindex,nofollow">`
+and the repository serves a blanket `robots.txt` disallow. A prototype on a public
+host must not appear in search results alongside gemseducationindia.com. The source
+copy in `~/gems-hero` does not carry the tag; it is added here, at the hosting layer.
