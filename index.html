@@ -1527,7 +1527,13 @@ body.menu-open{overflow:hidden}
    city had campuses, but the campus itself had no page. */
 
 /* at a glance: the four facts, across the width, no boxes */
-.glance{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(18px,2.4vw,44px);
+.cshot{background:#FFFFFF}
+.cshot .in{max-width:1520px;margin:0 auto;padding-inline:clamp(18px,3vw,40px)}
+.cshot img{display:block;width:100%;aspect-ratio:21/9;object-fit:cover;border-radius:22px}
+@media(max-width:700px){.cshot img{aspect-ratio:4/3}}
+/* three cells, not four: a fixed four column track left a hole when a campus
+   publishes no year range */
+.glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:clamp(18px,2.4vw,44px);
   padding-top:clamp(6px,1vw,14px);border-top:1px solid rgba(0,43,100,.14);margin-top:2px}
 .glance > div{padding-top:clamp(18px,2vw,28px)}
 .glance .k{display:block;font-size:11px;font-weight:700;letter-spacing:.15em;
@@ -3086,12 +3092,19 @@ function pCampus(sl){
     artFor(curList)+" "+(kindOf(curList) ? curList+" school" : curList.toLowerCase())+
       " in "+city+".")+
 
+    /* A GEMS photograph, not a photograph OF this campus: GEMS does not publish
+       per campus imagery, and its own campus pages reuse the same shots. The alt
+       says so rather than claiming a building the reader cannot be shown. */
+    '<section class="cshot"><div class="in"><img src="'+IMGS[r[3]]+
+      '" alt="Students at a GEMS school in India"></div></section>'+
+
+    /* City and school brand were here too, which put the H1 on the page four
+       times over and left one new fact above the fold. */
     blk("",'<div class="glance">'+[
       ["Curriculum",curList],
-      ["City",city],
-      ["School brand",r[0]],
+      ["Years taught",r[6]||""],
       ["Admissions",open?"Open for 2027-28":"Opening April 2027"]
-    ].map(function(t){
+    ].filter(function(t){ return t[1]; }).map(function(t){
       return '<div><span class="k">'+esc(t[0])+'</span><span class="v">'+esc(t[1])+'</span></div>';
     }).join("")+'</div>'+
       (campusSite(r)
