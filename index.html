@@ -2229,23 +2229,15 @@ var REAL=[
  ["Dream India School","Tuni","South","chem",0,"CBSE",""],
  ["Dream India School","Tiruvuru","South","library",0,"CBSE",""]
 ];
-/* Every campus web address GEMS itself publishes, read off its own
-   /find-a-school page and checked for a 200 on 5 Nov 2026. Ten campuses have a
-   page on the group site; three brands GEMS acquired keep their own domain.
-   GEMS Millennium School in Varanasi is absent from /find-a-school and has no
-   published address, so it has no entry here rather than a guessed one.
-   When our campus builds replace these, this map is the only thing to edit. */
+/* Campus sites that live somewhere other than this one.
+   The ten GEMS run campuses have no separate site: their campus page IS a page
+   of gemseducationindia.com, which is the site this replaces, so /campus/<slug>
+   here becomes that page and must not link to it. Only the three brands GEMS
+   acquired keep their own domains, confirmed 200 on 5 Nov 2026.
+   indirapuram.gemseducationindia.com is deliberately absent: it is being
+   discontinued, and it needs a 301 to the campus page, not a link.
+   If a campus is given its own site later, one line here turns the link on. */
 var CAMPUSSITE={
- "GEMS Millennium School|Indirapuram, Ghaziabad":"https://gemseducationindia.com/millennium-school-indirapuram/",
- "GEMS Millennium School|Gurugram":"https://gemseducationindia.com/millennium-school-gurugram/",
- "GEMS Millennium School|Kochi":"https://gemseducationindia.com/millennium-school-kochi/",
- "GEMS Millennium School|Vikhroli, Mumbai":"https://gemseducationindia.com/millennium-school-vikhroli/",
- "GEMS Millennium School|Kalyan":"https://gemseducationindia.com/millennium-school-kalyan/",
- "GEMS Millennium School|Raipur":"https://gemseducationindia.com/millennium-school-raipur/",
- "GEMS Modern Academy|Kochi":"https://gemseducationindia.com/modern-academy-kochi/",
- "GEMS Modern Academy|Coimbatore":"https://gemseducationindia.com/modern-academy-coimbatore/",
- "GEMS School of Excellence|Lucknow (SCR)":"https://gemseducationindia.com/school-of-excellence-lucknow/",
- "GEMS School of Excellence|Jodhpur":"https://gemseducationindia.com/school-of-excellence-jodhpur/",
  "Little GEMS|Kochi":"https://www.littlegemskochi.in/",
  "Life Valley International School|Kottayam":"https://www.lifevalley.in/",
  "Dream India School|Tuni":"https://dreamindia.com/",
