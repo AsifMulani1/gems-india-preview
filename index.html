@@ -750,12 +750,24 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .spanel .cty b{font-weight:700}
 .spanel .meta{font-size:13px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:rgba(0,43,100,.72)}
 .spanel .cl{display:flex;flex-direction:column}
-.spanel .cl a{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
-  padding:15px 0;border-top:1px solid rgba(0,43,100,.12);font-size:17px;font-weight:400;transition:.16s}
-.spanel .cl a:last-child{border-bottom:1px solid rgba(0,43,100,.12)}
-.spanel .cl a:hover{padding-left:8px;color:#00A3E0}
+/* the row carries two destinations: our campus page, and the campus's own site.
+   Anchors cannot nest, so the row is a flex wrapper holding both. */
+.spanel .clr{display:flex;align-items:baseline;gap:10px;
+  border-top:1px solid rgba(0,43,100,.12)}
+.spanel .clr:last-child{border-bottom:1px solid rgba(0,43,100,.12)}
+.spanel .cl .cin{flex:1;display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding:15px 0;font-size:17px;font-weight:400;transition:.16s}
+.spanel .cl .cin:hover{padding-left:8px;color:#00A3E0}
+/* #007FAF is the darkest brand blue that clears AA on white, at 4.51:1. Fading it
+   to 78% dropped 11px type to 3.17:1, so the colour carries the recession alone. */
+.spanel .cl .cex{flex:none;display:inline-flex;align-items:center;gap:6px;padding:15px 0 15px 4px;
+  font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#007FAF;
+  text-decoration:none;white-space:nowrap}
+.spanel .cl .cex:hover{text-decoration:underline}
+.spanel .cl .cex .exi{width:11px;height:11px;flex:none}
 .spanel .cl em{font-style:normal;font-size:12.5px;font-weight:600;letter-spacing:.09em;
   text-transform:uppercase;color:rgba(0,43,100,.72);white-space:nowrap}
+@media(max-width:560px){.spanel .cl .cex span{display:none}}
 .spanel .hint{font-size:14.5px;font-weight:300;color:#4D4D4D;line-height:1.6;
   padding-top:clamp(14px,1.6vw,20px);border-top:1px solid rgba(0,43,100,.14)}
 /* an empty frame holds the readout's shape, so the panel never jumps as the
@@ -1530,6 +1542,16 @@ body.menu-open{overflow:hidden}
 @media(max-width:520px){.steps{grid-template-columns:1fr}}
 
 /* where it is: the same India geometry as the atlas, so the boundary is complete */
+/* the official address for this campus, beside the facts rather than under them */
+.csite{display:flex;align-items:center;justify-content:space-between;gap:clamp(14px,2vw,32px);
+  flex-wrap:wrap;margin-top:clamp(18px,2vw,28px);padding:clamp(16px,1.7vw,22px) clamp(18px,2vw,28px);
+  border:1px solid rgba(0,43,100,.16);border-radius:16px;text-decoration:none;color:#002B64;
+  transition:border-color .25s,background .25s}
+.csite:hover{border-color:#00A3E0;background:rgba(0,163,224,.06)}
+.csite .t{font-size:clamp(15px,1.3vw,18px);font-weight:600;letter-spacing:-.01em}
+.csite .u{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:400;
+  color:#4D4D4D;word-break:break-all}
+.csite .exi{width:12px;height:12px;flex:none;color:#007FAF}
 .loc{display:grid;grid-template-columns:minmax(0,.58fr) minmax(0,1fr);
   gap:clamp(24px,4vw,70px);align-items:center;padding-top:clamp(24px,3vw,42px)}
 .lmap{background:#F7F9FB;border-radius:26px;padding:clamp(16px,2vw,28px)}
@@ -2177,6 +2199,37 @@ var REAL=[
  ["Dream India School","Tuni","South","chem",0,"CBSE",""],
  ["Dream India School","Tiruvuru","South","library",0,"CBSE",""]
 ];
+/* Every campus web address GEMS itself publishes, read off its own
+   /find-a-school page and checked for a 200 on 5 Nov 2026. Ten campuses have a
+   page on the group site; three brands GEMS acquired keep their own domain.
+   GEMS Millennium School in Varanasi is absent from /find-a-school and has no
+   published address, so it has no entry here rather than a guessed one.
+   When our campus builds replace these, this map is the only thing to edit. */
+var CAMPUSSITE={
+ "GEMS Millennium School|Indirapuram, Ghaziabad":"https://gemseducationindia.com/millennium-school-indirapuram/",
+ "GEMS Millennium School|Gurugram":"https://gemseducationindia.com/millennium-school-gurugram/",
+ "GEMS Millennium School|Kochi":"https://gemseducationindia.com/millennium-school-kochi/",
+ "GEMS Millennium School|Vikhroli, Mumbai":"https://gemseducationindia.com/millennium-school-vikhroli/",
+ "GEMS Millennium School|Kalyan":"https://gemseducationindia.com/millennium-school-kalyan/",
+ "GEMS Millennium School|Raipur":"https://gemseducationindia.com/millennium-school-raipur/",
+ "GEMS Modern Academy|Kochi":"https://gemseducationindia.com/modern-academy-kochi/",
+ "GEMS Modern Academy|Coimbatore":"https://gemseducationindia.com/modern-academy-coimbatore/",
+ "GEMS School of Excellence|Lucknow (SCR)":"https://gemseducationindia.com/school-of-excellence-lucknow/",
+ "GEMS School of Excellence|Jodhpur":"https://gemseducationindia.com/school-of-excellence-jodhpur/",
+ "Little GEMS|Kochi":"https://www.littlegemskochi.in/",
+ "Life Valley International School|Kottayam":"https://www.lifevalley.in/",
+ "Dream India School|Tuni":"https://dreamindia.com/",
+ "Dream India School|Tiruvuru":"https://dreamindia.com/"
+};
+/* a campus invented by the scale preview has no website, and must not borrow one */
+function campusSite(r){ return CAMPUSSITE[r[0]+"|"+r[1]] || ""; }
+/* what the reader is about to open, so the destination is never a surprise */
+function siteHost(u){ return u.replace(/^https?:\/\/(www\.)?/,"").replace(/\/$/,""); }
+var EXTICON='<svg class="exi" viewBox="0 0 12 12" aria-hidden="true" fill="none" '+
+  'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'+
+  '<path d="M4.5 1.5h6v6"/><path d="M10.5 1.5L5 7"/>'+
+  '<path d="M9 7.5v3h-7.5V3h3"/></svg>';
+
 /* a hypothetical expansion, used only to show how the page behaves at scale */
 var GROW=[["Noida","North"],["Faridabad","North"],["Jaipur","North"],["Chandigarh","North"],
 ["Dehradun","North"],["Kanpur","North"],["Agra","North"],["Ludhiana","North"],["Amritsar","North"],
@@ -2674,8 +2727,13 @@ function sPaint(){
       '<div><div class="meta">'+esc(camp[0][2])+' India</div>'+
       '<div class="cty"><b>'+esc(SSEL)+'</b></div></div>'+
       '<div class="cl">'+camp.map(function(r){
-        return '<a href="#/campus/'+campusSlug(r[0],r[1])+'">'+esc(r[0])+
-          '<em'+(r[4]?' class="soon"':'')+'>'+esc(campusMeta(r))+'</em></a>';}).join("")+'</div>';
+        var u=campusSite(r);
+        return '<div class="clr"><a class="cin" href="#/campus/'+campusSlug(r[0],r[1])+'">'+esc(r[0])+
+          '<em'+(r[4]?' class="soon"':'')+'>'+esc(campusMeta(r))+'</em></a>'+
+          (u ? '<a class="cex" href="'+esc(u)+'" target="_blank" rel="noopener" title="'+
+               esc(siteHost(u))+'" aria-label="'+esc(r[0]+" in "+r[1])+
+               ' campus website, opens in a new tab"><span>Website</span>'+EXTICON+'</a>' : '')+
+          '</div>';}).join("")+'</div>';
   } else {
     var cities=Object.keys(byCity).length;
     panel.innerHTML='<div><div class="cty"><b>'+hit.length+'</b> '+(hit.length===1?'campus':'campuses')+
@@ -3011,7 +3069,12 @@ function pCampus(sl){
       ["Admissions",open?"Open for 2027-28":"Opening April 2027"]
     ].map(function(t){
       return '<div><span class="k">'+esc(t[0])+'</span><span class="v">'+esc(t[1])+'</span></div>';
-    }).join("")+'</div>')+
+    }).join("")+'</div>'+
+      (campusSite(r)
+        ? '<a class="csite" href="'+esc(campusSite(r))+'" target="_blank" rel="noopener">'+
+          '<span class="t">Visit the campus website</span>'+
+          '<span class="u">'+esc(siteHost(campusSite(r)))+EXTICON+'</span></a>'
+        : ''))+
 
     blk("alt",lead('<b>Admissions,</b><br>in four steps.',
       "How an enquiry reaches the "+city+" campus.")+
