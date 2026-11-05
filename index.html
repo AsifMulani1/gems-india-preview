@@ -444,6 +444,11 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .bfind .in{max-width:1520px;margin:0 auto;padding-inline:clamp(18px,3vw,40px)}
 .bfind .say{margin:0;font-size:clamp(20px,2.2vw,30px);font-weight:300;letter-spacing:-.03em;
   line-height:1.36;color:#002B64}
+/* the reveal system puts will-change:transform on both of these, so each is its
+   own stacking context and the menu's z-index cannot escape .say. Without an
+   explicit order the later sibling wins and the tally paints over the menu. */
+.bfind .say{position:relative;z-index:3}
+.bfind .tally{position:relative;z-index:1}
 /* the two variable words are the control. no toolbar, no grey panel. */
 .pick{position:relative;display:inline-block;font-weight:600;color:#007FAF;cursor:pointer;
   border-bottom:2px solid rgba(0,163,224,.34);white-space:nowrap}
@@ -455,9 +460,20 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .pmenu{position:absolute;z-index:40;top:calc(100% + 12px);left:0;background:#fff;border-radius:20px;
   box-shadow:0 20px 60px rgba(0,27,64,.2);padding:10px;min-width:236px;
   max-height:min(52vh,360px);overflow:auto;
+
   opacity:0;visibility:hidden;transform:translateY(-8px) scale(.98);transform-origin:top left;
   transition:opacity .26s,transform .3s cubic-bezier(.22,1,.36,1),visibility .26s}
 .pick.open .pmenu{opacity:1;visibility:visible;transform:none}
+.pmenu::-webkit-scrollbar{width:9px}
+.pmenu::-webkit-scrollbar-thumb{background:rgba(0,43,100,.32);border-radius:99px;
+  border:3px solid #fff;background-clip:padding-box}
+/* The platform scrollbar is an overlay here: it reserves no width and paints
+   nothing until you drag, so eight of thirteen cities looked like all of them.
+   The script adds .more while rows remain below the fold. Sticky keeps the fade
+   pinned to the foot of the scroller instead of riding down with the content. */
+.pmenu.more::after{content:"";display:block;position:sticky;bottom:-10px;height:52px;
+  margin:-52px -10px -10px;border-radius:0 0 20px 20px;pointer-events:none;
+  background:linear-gradient(rgba(255,255,255,0),#FFFFFF 78%)}
 .pmenu button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;
   background:none;border:0;cursor:pointer;font:inherit;font-size:15px;font-weight:400;
   letter-spacing:0;color:#002B64;padding:11px 14px;border-radius:12px;text-align:left;
@@ -487,14 +503,18 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .bgrid-wrap{background:#fff;padding:clamp(24px,2.8vw,40px) 0 clamp(40px,4.6vw,72px)}
 .bgrid-wrap .in{max-width:1520px;margin:0 auto;padding-inline:clamp(18px,3vw,40px)}
 
-/* A wall of marks, not a row of boxes. Six lockups of wildly different
-   proportions cannot be made equal, so the composition does the work instead:
-   tiles are deliberately unequal, sized by what the brand actually is, and each
-   mark is drawn to the same optical AREA rather than the same width. */
-.bwall{display:grid;grid-template-columns:repeat(12,1fr);gap:clamp(13px,1.5vw,20px)}
-.bmark{grid-column:span var(--sp,4);position:relative;overflow:hidden;
+/* A wall of marks, not a row of boxes. The lockups have wildly different
+   proportions, so the equalising is done on the MARK, drawn to the same optical
+   area rather than the same width, and the tile holding it stays the same for
+   every brand. Unequal tiles were tried and dropped: they only read as
+   composition if they tile exactly and the size carries meaning, and they did
+   neither. The widest tile held the brand with the fewest campuses. */
+.bwall{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(13px,1.5vw,20px);
+  /* rows size to their own content otherwise, so row two sat 3px taller */
+  grid-auto-rows:1fr}
+.bmark{position:relative;overflow:hidden;
   display:flex;flex-direction:column;justify-content:space-between;
-  min-height:var(--h,260px);padding:clamp(22px,2.3vw,34px);
+  min-height:286px;padding:clamp(22px,2.3vw,34px);
   background:linear-gradient(165deg,#F7F9FB 0%,#F1F1F1 100%);
   border-radius:26px;text-decoration:none;color:#002B64;
   transition:background .4s,transform .45s cubic-bezier(.22,1,.36,1),
@@ -535,6 +555,8 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .bmark.dim:hover{opacity:.7;transform:none;box-shadow:none;
   background:linear-gradient(165deg,#F7F9FB 0%,#F1F1F1 100%)}
 .bmark.dim:hover:after{transform:scaleX(0)}
+/* a brand left alone at the end takes the row rather than sitting in a hole */
+.bmark:last-child:nth-child(3n+1){grid-column:1/-1}
 /* the tile arrives first, the mark settles into it */
 .mo .bmark .mk img{opacity:0;transition:opacity .8s ease .2s}
 .mo .bmark.rvin .mk img{opacity:1}
@@ -2696,23 +2718,23 @@ function pBrands(){
   BRANDS.forEach(function(b){ curOf(b).forEach(function(c){
     if(!seen["u"+c]){ seen["u"+c]=1; CUR.push(c); } }); });
 
-  /* the composition is hand set for the six brands there actually are: the
-     flagship largest, then by campus count, and the one that has not opened
-     held apart across the foot. past six it falls back to an even wall. */
-  var PLAN={"gems-modern-academy":[7,296,"",26000],"gems-millennium-school":[5,296,"",24000],
-            "gems-school-of-excellence":[5,236,"",14500],"dream-india-school":[4,236,"",14000],
-            "little-gems":[3,236,"",13000]};
+  /* One tile size for every brand. The hand set composition that used to live
+     here sized tiles by brand, but its spans summed to 28 of a 12 column grid,
+     so the sixth brand was orphaned on a row of its own, and the widest tile
+     held GEMS Modern Academy, which has two campuses, beside a narrower
+     Millennium that has seven. Size that contradicts the number printed inside
+     the tile is worse than no size at all. */
+  var MARKAREA=15000;
   function card(b,i){
     var rows=rowsFor(b), n=rows.length;
     var opening = n>0 && rows.every(function(r){ return r[4]; });
     var lg=BRANDLOGO[b[0]];
-    var plan = BRANDS.length===6 && PLAN[b[0]] ? PLAN[b[0]] : [4,236,"",14000];
     /* same optical area for every mark, then a nudge for the thin wordmarks */
-    var area = plan[3];
+    var area = MARKAREA;
     var r = LOGOAR[b[0]] || 2.4;
     var h = Math.round(Math.sqrt(area/r) * (LOGOINK[b[0]]||1));
-    return '<a class="bmark'+(plan[2]?" "+plan[2]:"")+'" href="#/brand/'+b[0]+
-      '" style="--sp:'+plan[0]+';--h:'+plan[1]+'px" data-cities="'+esc(rows.map(function(x){
+    return '<a class="bmark" href="#/brand/'+b[0]+
+      '" data-cities="'+esc(rows.map(function(x){
         return x[1]; }).join("|"))+'" data-cur="'+esc(curOf(b).join("|"))+'">'+
       '<span class="mk"><img src="'+(lg?LOGOS[lg]:IMGS.logo)+'" alt="'+esc(b[1])+
         ' logo" style="height:'+h+'px" loading="lazy"></span>'+
@@ -2847,8 +2869,18 @@ function wireBrands(){
   }
   function shut(){ picks.forEach(function(p){ p.classList.remove("open");
     p.setAttribute("aria-expanded","false"); }); }
+  /* The list is taller than the menu once a handful of cities are open, and the
+     platform scrollbar is an overlay that paints nothing until you scroll, so a
+     cut list reads as the whole list. This fades the last row while rows remain. */
+  function fade(p){
+    var m=p.querySelector(".pmenu");
+    m.classList.toggle("more", m.scrollHeight - m.scrollTop - m.clientHeight > 4);
+  }
   function toggle(p){ var was=p.classList.contains("open"); shut();
-    if(!was){ p.classList.add("open"); p.setAttribute("aria-expanded","true"); } }
+    if(!was){ p.classList.add("open"); p.setAttribute("aria-expanded","true"); fade(p); } }
+  picks.forEach(function(p){
+    p.querySelector(".pmenu").addEventListener("scroll",function(){ fade(p); });
+  });
 
   find.addEventListener("click",function(e){
     var bt=e.target.closest(".pmenu button");
