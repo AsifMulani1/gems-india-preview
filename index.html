@@ -2026,7 +2026,7 @@ function buildAtlas(){
      a hub exists when it has two or more children. */
   function cityHref(c){
     var o=byCity[c];
-    return o.n===1 ? "#/campus/"+campusSlug(o.one[0],o.one[1]) : "#/city/"+cslug(c);
+    return o.n===1 ? campusHref(o.one) : "#/city/"+cslug(c);
   }
   /* south to north, so the sequence sweeps up the country */
   var names=Object.keys(byCity).filter(function(c){return MAP.pts[c];})
@@ -2089,7 +2089,9 @@ function buildAtlas(){
     '<g class="land">'+MAP.paths.map(function(d){return '<path d="'+d+'"/>';}).join("")+'</g>'+
     '<g class="pins">'+names.map(function(c,i){
       var p=POS[c], west=labelWest(c);
-      return '<a class="apin'+(byCity[c].soon?" soon":"")+'" href="'+cityHref(c)+'" '+
+      var one=byCity[c].n===1 ? byCity[c].one : null;
+      return '<a class="apin'+(byCity[c].soon?" soon":"")+'" href="'+cityHref(c)+'"'+
+        (one?campusAttr(one):'')+' '+
         'transform="translate('+p[0]+','+p[1]+')" aria-label="'+c+', '+byCity[c].n+' campus'+
         (byCity[c].n===1?'':'es')+'">'+
         '<circle class="halo" r="30"/><circle class="dot" r="10"/>'+
@@ -2282,15 +2284,26 @@ var REAL=[
  ["Dream India School","Tuni","South","chem",0,"CBSE",""],
  ["Dream India School","Tiruvuru","South","library",0,"CBSE",""]
 ];
-/* Campus sites that live somewhere other than this one.
-   The ten GEMS run campuses have no separate site: their campus page IS a page
-   of gemseducationindia.com, which is the site this replaces, so /campus/<slug>
-   here becomes that page and must not link to it. Only the three brands GEMS
-   acquired keep their own domains, confirmed 200 on 5 Nov 2026.
-   indirapuram.gemseducationindia.com is deliberately absent: it is being
-   discontinued, and it needs a 301 to the campus page, not a link.
-   If a campus is given its own site later, one line here turns the link on. */
+/* The page each campus actually publishes, read off gemseducationindia.com and
+   checked for a 200. These pages stay: this site replaces the group level pages
+   around them, not the campus pages themselves. A parent who has picked a campus
+   wants the campus, so every campus link goes straight here rather than through a
+   thinner page of our own.
+   indirapuram.gemseducationindia.com is deliberately absent. It is a campaign
+   page being discontinued, its form posts to Pabbly rather than the CRM, and it
+   has no way back into the site. It needs a 301 to the campus page, not a link.
+   GEMS publishes nothing for Varanasi, which is why it has no entry. */
 var CAMPUSSITE={
+ "GEMS Millennium School|Indirapuram, Ghaziabad":"https://gemseducationindia.com/millennium-school-indirapuram/",
+ "GEMS Millennium School|Gurugram":"https://gemseducationindia.com/millennium-school-gurugram/",
+ "GEMS Millennium School|Kochi":"https://gemseducationindia.com/millennium-school-kochi/",
+ "GEMS Millennium School|Vikhroli, Mumbai":"https://gemseducationindia.com/millennium-school-vikhroli/",
+ "GEMS Millennium School|Kalyan":"https://gemseducationindia.com/millennium-school-kalyan/",
+ "GEMS Millennium School|Raipur":"https://gemseducationindia.com/millennium-school-raipur/",
+ "GEMS Modern Academy|Kochi":"https://gemseducationindia.com/modern-academy-kochi/",
+ "GEMS Modern Academy|Coimbatore":"https://gemseducationindia.com/modern-academy-coimbatore/",
+ "GEMS School of Excellence|Lucknow (SCR)":"https://gemseducationindia.com/school-of-excellence-lucknow/",
+ "GEMS School of Excellence|Jodhpur":"https://gemseducationindia.com/school-of-excellence-jodhpur/",
  "Little GEMS|Kochi":"https://www.littlegemskochi.in/",
  "Life Valley International School|Kottayam":"https://www.lifevalley.in/",
  "Dream India School|Tuni":"https://dreamindia.com/",
@@ -2298,6 +2311,13 @@ var CAMPUSSITE={
 };
 /* a campus invented by the scale preview has no website, and must not borrow one */
 function campusSite(r){ return CAMPUSSITE[r[0]+"|"+r[1]] || ""; }
+/* Where a campus publishes a page, that page is the destination. Ours is the
+   fallback for a campus GEMS has not published one for, which today is Varanasi
+   and every campus the scale preview invents.
+   In the preview these open in a new tab so the mockup is not lost behind them;
+   on the group site the GEMS ones are same site links and open in place. */
+function campusHref(r){ return campusSite(r) || "#/campus/"+campusSlug(r[0],r[1]); }
+function campusAttr(r){ return campusSite(r) ? ' target="_blank" rel="noopener"' : ''; }
 /* what the reader is about to open, so the destination is never a surprise */
 function siteHost(u){ return u.replace(/^https?:\/\/(www\.)?/,"").replace(/\/$/,""); }
 var EXTICON='<svg class="exi" viewBox="0 0 12 12" aria-hidden="true" fill="none" '+
@@ -2511,7 +2531,7 @@ function pSchools(){
     '<div class="slist">'+
       '<h2 class="sidx">Every GEMS campus in India</h2>'+
       '<div class="cols">'+REAL.map(function(r){
-        return '<a href="#/campus/'+campusSlug(r[0],r[1])+'">'+esc(r[0])+', '+esc(r[1])+'</a>';
+        return '<a href="'+campusHref(r)+'"'+campusAttr(r)+'>'+esc(r[0])+', '+esc(r[1])+'</a>';
       }).join("")+'</div>'+
       '<p class="sidxn"><span>By city</span>'+rcity.map(function(c){
         return '<a href="#/city/'+slug(c)+'">'+esc(c)+'</a>';}).join("")+'</p>'+
@@ -2713,7 +2733,7 @@ function sPreviewHTML(city){
   var camp=network().filter(function(r){return r[1]===city && sMatches(r);});
   if(!camp.length) return "";
   var r=camp[0];
-  return '<a class="prevw" href="#/campus/'+campusSlug(r[0],r[1])+'">'+
+  return '<a class="prevw" href="'+campusHref(r)+'"'+campusAttr(r)+'>'+
     '<span class="ph"><img src="'+IMGS[r[3]]+'" alt="'+esc(r[0])+'"></span>'+
     '<span class="tx"><span class="nm">'+esc(r[0])+'</span>'+
     '<span class="ct">'+esc(city)+(camp.length>1?' \u00b7 '+camp.length+' campuses':'')+
@@ -2803,12 +2823,10 @@ function sPaint(){
       '<div class="cty"><b>'+esc(SSEL)+'</b></div></div>'+
       '<div class="cl">'+camp.map(function(r){
         var u=campusSite(r);
-        return '<div class="clr"><a class="cin" href="#/campus/'+campusSlug(r[0],r[1])+'">'+esc(r[0])+
-          '<em'+(r[4]?' class="soon"':'')+'>'+esc(campusMeta(r))+'</em></a>'+
-          (u ? '<a class="cex" href="'+esc(u)+'" target="_blank" rel="noopener" title="'+
-               esc(siteHost(u))+'" aria-label="'+esc(r[0]+" in "+r[1])+
-               ' campus website, opens in a new tab"><span>Website</span>'+EXTICON+'</a>' : '')+
-          '</div>';}).join("")+'</div>';
+        return '<div class="clr"><a class="cin" href="'+campusHref(r)+'"'+campusAttr(r)+
+          (u?' title="'+esc(siteHost(u))+'"':'')+'>'+esc(r[0])+
+          '<em'+(r[4]?' class="soon"':'')+'>'+esc(campusMeta(r))+'</em>'+
+          (u?EXTICON:'')+'</a></div>';}).join("")+'</div>';
   } else {
     var cities=Object.keys(byCity).length;
     panel.innerHTML='<div><div class="cty"><b>'+hit.length+'</b> '+(hit.length===1?'campus':'campuses')+
@@ -3041,7 +3059,7 @@ function pBrand(s){
       '<div class="prose"><p>'+esc(b[5])+'</p></div>')+
     blk("alt",lead('<b>'+camp.length+'</b> '+(camp.length===1?'campus':'campuses')+'.')+
       '<div class="rows">'+camp.map(function(r){
-        return '<a class="row" href="#/campus/'+campusSlug(r[0],r[1])+'">'+
+        return '<a class="row" href="'+campusHref(r)+'"'+campusAttr(r)+'>'+
           '<span class="nm">'+esc(r[1])+'</span>'+
           '<span class="mid">'+esc(r[2])+' India</span>'+
           '<span class="end'+(r[4]?' soon':'')+'">'+
@@ -3089,7 +3107,7 @@ function pCampus(sl){
   function num(v){ return v<10 ? WORD[v] : String(v); }
 
   function row(x){
-    return '<a class="row" href="#/campus/'+campusSlug(x[0],x[1])+'">'+
+    return '<a class="row" href="'+campusHref(x)+'"'+campusAttr(x)+'>'+
       '<span><span class="nm">'+esc(x[0])+'</span>'+
       '<span class="sm'+(x[4]?' soon':'')+'">'+esc(campusMeta(x))+'</span></span>'+
       '<span class="mid">'+esc(x[1])+'</span><span class="end">View campus</span></a>';
@@ -3214,7 +3232,7 @@ function pCity(s){
     camp.length+(camp.length===1?" GEMS campus in ":" GEMS campuses in ")+city+", "+camp[0][2]+" India.")+
     blk("",lead('<b>Campuses</b><br>in '+esc(city)+'.')+
       '<div class="rows">'+camp.map(function(r){
-        return '<a class="row" href="#/campus/'+campusSlug(r[0],r[1])+'">'+
+        return '<a class="row" href="'+campusHref(r)+'"'+campusAttr(r)+'>'+
           '<span><span class="nm">'+esc(r[0])+'</span>'+
           '<span class="sm'+(r[4]?' soon':'')+'">'+esc(campusMeta(r))+'</span></span>'+
           '<span class="mid">'+esc(city)+'</span>'+
@@ -4333,7 +4351,7 @@ function fPaint(){
   list.innerHTML = rows.length ? keys.map(function(k){
     return '<div class="fgh">'+esc(k)+' India</div>'+
       by[k].sort(function(x,y){ return x[1]<y[1]?-1:x[1]>y[1]?1:0; }).map(function(r){
-        return '<a class="frow'+(r[4]?' soon':'')+'" href="#/campus/'+campusSlug(r[0],r[1])+'">'+
+        return '<a class="frow'+(r[4]?' soon':'')+'" href="'+campusHref(r)+'"'+campusAttr(r)+'>'+
           '<span class="fn">'+esc(r[0])+'</span>'+
           '<span class="fc">'+esc(r[1])+'</span>'+
           '<span class="fb">'+esc(campusMeta(r))+'</span></a>';
@@ -4420,7 +4438,12 @@ function render(){
     var _cn=_ct ? campusesIn(_ct).length : 0;
     title=_ct ? ("GEMS Schools in "+_ct+" | "+_cn+(_cn===1?" campus":" campuses"))
               : "Page not found"; }
-  else if(seg[0]==="campus"){ var _c=campusBy(seg[1]); html=pCampus(seg[1]);
+  else if(seg[0]==="campus"){
+    var _c=campusBy(seg[1]);
+    /* Nothing links here any more for a campus that publishes its own page, so
+       this only catches an old link or a bookmark. On the live site it is a 301. */
+    if(_c && campusSite(_c.r)){ location.replace(campusSite(_c.r)); return; }
+    html=pCampus(seg[1]);
     /* the title is the phrase a parent searches, not the brand name */
     title=_c ? (curOfCampus(_c.r).join(", ")+
                 " School in "+_c.r[1]+" | "+_c.r[0]) : "Page not found"; }
