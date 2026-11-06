@@ -19,3 +19,13 @@ This copy of `index.html` carries `<meta name="robots" content="noindex,nofollow
 and the repository serves a blanket `robots.txt` disallow. A prototype on a public
 host must not appear in search results alongside gemseducationindia.com. The source
 copy in `~/gems-hero` does not carry the tag; it is added here, at the hosting layer.
+
+## Icons
+
+`favicon.png` and `icon-180.png` are GEMS' own mark, taken from
+https://gemseducationindia.com/favicon.ico (one 256x256 RGBA entry) and scaled.
+The home screen icon is inset and flattened to white because iOS rounds the
+corners and does not keep transparency.
+
+Worth telling GEMS: their pages declare no icon tags at all, so browsers fall
+back to the root `/favicon.ico` and iOS has no home screen icon to use.
