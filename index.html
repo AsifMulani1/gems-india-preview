@@ -826,6 +826,9 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
   border-radius:999px;padding:11px 20px;font-size:14px;font-weight:500;color:var(--navy);
   transition:background .18s,border-color .18s,color .18s}
 .wnext .lnks a:hover{background:var(--navy);border-color:var(--navy);color:#FFFFFF}
+/* one of these is the action, the rest are ways out */
+.wnext .lnks a.go{background:var(--navy);border-color:var(--navy);color:#FFFFFF;font-weight:600}
+.wnext .lnks a.go:hover{background:#001B40;border-color:#001B40}
 
 /* a group headline with no article behind it is a row, not a link */
 .nrow.flat{color:rgba(0,43,100,.78)}
@@ -2650,6 +2653,13 @@ function mapLabel(city,drawn){
     return o!==city && o.slice(o.lastIndexOf(",")+1).trim()===short; });
   return clash ? city : short;
 }
+/* Names the first cities and counts the rest, so the line is the same length
+   at seven campuses and at a hundred. */
+function cityList(cities,drawn){
+  var cl=cities.map(function(c){ return mapLabel(c,drawn||cities); });
+  return cl.length>3 ? cl.slice(0,2).join(", ")+" and "+(cl.length-2)+" more"
+                     : cl.join(", ");
+}
 function spreadPins(cities,k){
   var pos={}, need=26*k, keys=[];
   cities.forEach(function(c){ var p=MAPDATA.pts[c];
@@ -2982,8 +2992,7 @@ function pBrands(){
           } else {
             meter='<span class="bar" style="--w:'+Math.round(100*n/max)+'%"><i></i></span>';
           }
-          var cl=row.cities.map(function(c){ return mapLabel(c,CITY); });
-          var shown=cl.length>3 ? cl.slice(0,2).join(", ")+" and "+(cl.length-2)+" more" : cl.join(", ");
+          var shown=cityList(row.cities,CITY);
           return '<a class="r" href="#/brand/'+b[0]+'">'+
             '<span class="nm">'+esc(b[1])+'</span>'+
             '<span class="cu">'+curOf(b).map(function(c){return '<i>'+esc(c)+'</i>';}).join("")+'</span>'+
@@ -3082,16 +3091,21 @@ function pBrand(s){
   var b=brandBy(s); if(!b) return p404();
   var camp=REAL.filter(function(r){return b[3].indexOf(r[1])>-1 && r[0]===b[1];});
   if(!camp.length) camp=REAL.filter(function(r){return r[0]===b[1];});
+  /* Open campuses first. Row order put Indirapuram, which does not open until
+     April 2027, at the head of the grid, so the first school a parent met was
+     one they cannot apply to. Order inside each group is left alone. */
+  camp=camp.filter(function(r){ return !r[4]; })
+    .concat(camp.filter(function(r){ return r[4]; }));
   var lg=BRANDLOGO[b[0]];
   var open=camp.filter(function(r){ return !r[4]; }).length, soon=camp.length-open;
-  var reg=[]; camp.forEach(function(r){ if(reg.indexOf(r[2])<0) reg.push(r[2]); });
+  var allCities=network().map(function(r){ return r[1]; });
 
   /* Every figure is counted off the campus table rather than written here, so a
      brand page cannot claim a board, a region or an intake the network lacks. */
   var facts=[
     ["Curriculum",b[2]],
     ["Campuses",String(camp.length)],
-    [reg.length===1?"Region":"Regions",andList(reg)+" India"],
+    [camp.length===1?"City":"Cities",cityList(camp.map(function(r){ return r[1]; }),allCities)],
     ["Admissions", !soon ? "Open for 2027-28"
        : !open ? "Opening April 2027"
        : open+" open, "+soon+" opening April 2027"]
@@ -3122,7 +3136,18 @@ function pBrand(s){
           esc(t[1])+'</span></div>'; }).join("")+'</div>')+
     blk("alt",lead('<b>'+camp.length+'</b> '+(camp.length===1?'campus':'campuses')+'.')+
       '<div class="grid3 cgrid" data-n="'+camp.length+'">'+
-        camp.map(card).join("")+'</div>');
+        camp.map(card).join("")+'</div>')+
+
+    /* Seven campuses in thirteen cities means most parents who reach this page
+       do not find their own, and the page used to end there: no map, no other
+       brand, no way to raise a hand. The waitlist is also the only form on the
+       site that is certain to reach the CRM. */
+    blk("",'<div class="wnext"><h2>Not found your campus?</h2>'+
+      '<p class="sub">Join the admission waitlist and the campus admissions office will '+
+      'come back to you. There is no fee and it does not commit you to anything.</p>'+
+      '<p class="lnks"><a class="go" href="#/waitlist">Join the admission waitlist</a>'+
+      '<a href="#/schools">See all '+network().length+' GEMS campuses on the map</a>'+
+      '<a href="#/brands">The other '+(BRANDS.length-1)+' school brands</a></p></div>');
 }
 
 /* a campus is a brand in a city. EuroSchool's equivalent page is the one a
