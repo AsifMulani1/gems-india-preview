@@ -746,6 +746,13 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .prevw .nm{display:block;font-size:clamp(16px,1.4vw,20px);font-weight:600;letter-spacing:-.02em}
 .prevw .ct{display:block;font-size:14px;font-weight:300;color:rgba(0,43,100,.72);padding-top:4px}
 .prevw:hover .nm{color:#00A3E0}
+.prevw .nm .exi{width:11px;height:11px;flex:none;margin-left:7px;color:#007FAF}
+.prevw .ct.soon{color:#007FAF;font-weight:600}
+/* one campus in a three column grid left two thirds of the row empty, and at
+   two thirds the 4:3 card became a 1000px photo that swamped the page */
+.cgrid[data-n="1"] .prevw{grid-column:1/-1}
+.cgrid[data-n="1"] .prevw .ph{aspect-ratio:21/9}
+@media(max-width:700px){.cgrid[data-n="1"] .prevw .ph{aspect-ratio:4/3}}
 .stip{position:absolute;pointer-events:none;background:var(--navy);color:#fff;font-size:12.5px;
   font-weight:600;padding:7px 11px;white-space:nowrap;opacity:0;transform:translate(-50%,-165%);transition:opacity .15s}
 .stip.on{opacity:1}
@@ -1084,6 +1091,9 @@ body.menu-open{overflow:hidden}
 .ph .crumb{justify-content:center}
 .ph h1{max-width:20ch;margin-inline:auto}
 .ph .sub{max-width:52ch;margin-inline:auto}
+/* a brand's own mark above its name, at the optical area the brands wall uses */
+.ph .bmk{display:flex;justify-content:center;padding-bottom:clamp(16px,2vw,28px)}
+.ph .bmk img{display:block;width:auto}
 /* a heading in its own column, body in the other, so short pages still fill the width */
 @media(min-width:900px){
   .blk.split .in{display:grid;grid-template-columns:minmax(0,.78fr) minmax(0,1.22fr);
@@ -2274,7 +2284,10 @@ var REAL=[
  ["GEMS Millennium School","Vikhroli, Mumbai","West","dance",0,"ICSE \u00b7 Cambridge","Age 2+ to Grade 7"],
  ["GEMS Millennium School","Kalyan","West","chem",0,"CBSE \u00b7 Cambridge","Age 2+ to Grade 7"],
  ["GEMS Millennium School","Raipur","Central","library",1,"CBSE","Age 2+"],
- ["GEMS Millennium School","Varanasi","North","corridor",0,"CBSE",""],
+ /* micro, not corridor: GEMS has not supplied campus photography, so these are
+    a shared placeholder set, and corridor is already Indirapuram's. The same
+    picture twice in one brand's grid reads as a mistake. */
+ ["GEMS Millennium School","Varanasi","North","micro",0,"CBSE",""],
  ["GEMS Modern Academy","Kochi","South","modern",0,"IB \u00b7 Cambridge","Age 2+ to Grade 12"],
  ["GEMS Modern Academy","Coimbatore","South","micro",1,"CBSE \u00b7 IB","Age 2+"],
  ["GEMS School of Excellence","Lucknow (SCR)","North","excellence",0,"CBSE","Age 2+ to Grade 9"],
@@ -2496,12 +2509,12 @@ function brandBy(s){for(var i=0;i<BRANDS.length;i++) if(BRANDS[i][0]===s) return
 function campusesIn(city){return network().filter(function(r){return r[1]===city;});}
 function allCities(){var m={};network().forEach(function(r){m[r[1]]=1;});return Object.keys(m).sort();}
 
-function head(crumbs,title,sub){
+function head(crumbs,title,sub,above){
   return '<section class="ph"><div class="in">'+
     '<nav class="crumb">'+crumbs.map(function(c,i){
       return (c[1]?'<a href="'+c[1]+'">'+esc(c[0])+'</a>':'<span>'+esc(c[0])+'</span>')+
              (i<crumbs.length-1?'<span>/</span>':'');}).join("")+'</nav>'+
-    '<h1>'+title+'</h1>'+(sub?'<p class="sub">'+esc(sub)+'</p>':'')+
+    (above||'')+'<h1>'+title+'</h1>'+(sub?'<p class="sub">'+esc(sub)+'</p>':'')+
     '</div></section>';
 }
 function blk(cls,inner){return '<section class="blk '+cls+'"><div class="in">'+inner+'</div></section>';}
@@ -2729,6 +2742,16 @@ function curOfCampus(r){
   var src=(r && r[5]) ? r[5] : (b ? b[2] : "");
   return src.split("\u00b7").map(function(x){ return x.trim(); }).filter(Boolean);
 }
+/* "North, West and South India" rather than "North, West, South India" */
+function andList(a){ var q=a.slice(), last=q.pop();
+  return q.length ? q.join(", ")+" and "+last : (last||""); }
+
+/* equal optical area: a 5:1 wordmark and a 1.7:1 crest set to the same height
+   read as different weights, so height follows from the area each mark covers */
+function markHeight(key,area){
+  return Math.round(Math.sqrt(area/(LOGOAR[key]||2.4))*(LOGOINK[key]||1));
+}
+
 /* "a IB school" is wrong; the article follows the sound of the next word */
 function artFor(w){ return /^[aeiou]/i.test(w) || /^(IB|ICSE|IGCSE)\b/.test(w) ? "An" : "A"; }
 /* a creche is not a curriculum, so it does not take the word school after it */
@@ -2888,9 +2911,7 @@ function pBrands(){
     var opening = n>0 && rows.every(function(r){ return r[4]; });
     var lg=BRANDLOGO[b[0]];
     /* same optical area for every mark, then a nudge for the thin wordmarks */
-    var area = MARKAREA;
-    var r = LOGOAR[b[0]] || 2.4;
-    var h = Math.round(Math.sqrt(area/r) * (LOGOINK[b[0]]||1));
+    var h = markHeight(b[0], MARKAREA);
     return '<a class="bmark" href="#/brand/'+b[0]+
       '" data-cities="'+esc(rows.map(function(x){
         return x[1]; }).join("|"))+'" data-cur="'+esc(curOf(b).join("|"))+'">'+
@@ -2898,7 +2919,7 @@ function pBrands(){
         ' logo" style="height:'+h+'px" loading="lazy"></span>'+
       '<span class="bot"><span class="tx"><span class="nm">'+esc(b[1])+'</span>'+
         '<span class="mt">'+curOf(b).map(function(c){ return '<i>'+esc(c)+'</i>'; }).join("")+
-        (opening?'<i class="opn">Opening 2026</i>':'')+'</span></span>'+
+        (opening?'<i class="opn">Opening April 2027</i>':'')+'</span></span>'+
         '<span class="no"><b>'+n+'</b><em>'+(n===1?'campus':'campuses')+'</em></span></span></a>';
   }
 
@@ -3061,16 +3082,47 @@ function pBrand(s){
   var b=brandBy(s); if(!b) return p404();
   var camp=REAL.filter(function(r){return b[3].indexOf(r[1])>-1 && r[0]===b[1];});
   if(!camp.length) camp=REAL.filter(function(r){return r[0]===b[1];});
-  return head([["Home","#/"],["School brands","#/brands"],[b[1],null]],'<b>'+esc(b[1])+'</b>',b[5])+
-    blk("",lead('<b>Curriculum</b><br>'+esc(b[2]))+
-      '<div class="prose"><p>'+esc(b[5])+'</p></div>')+
+  var lg=BRANDLOGO[b[0]];
+  var open=camp.filter(function(r){ return !r[4]; }).length, soon=camp.length-open;
+  var reg=[]; camp.forEach(function(r){ if(reg.indexOf(r[2])<0) reg.push(r[2]); });
+
+  /* Every figure is counted off the campus table rather than written here, so a
+     brand page cannot claim a board, a region or an intake the network lacks. */
+  var facts=[
+    ["Curriculum",b[2]],
+    ["Campuses",String(camp.length)],
+    [reg.length===1?"Region":"Regions",andList(reg)+" India"],
+    ["Admissions", !soon ? "Open for 2027-28"
+       : !open ? "Opening April 2027"
+       : open+" open, "+soon+" opening April 2027"]
+  ];
+
+  /* A campus is what a parent came for, so each one is a card they can see
+     rather than a line in a list, and it leads to the campus's own page. */
+  function card(r){
+    var u=campusSite(r);
+    return '<a class="prevw" href="'+campusHref(r)+'"'+campusAttr(r)+
+      (u?' title="'+esc(siteHost(u))+'"':'')+'>'+
+      '<span class="ph"><img src="'+IMGS[r[3]]+
+        '" alt="Students at a GEMS school in India" loading="lazy"></span>'+
+      '<span class="tx"><span class="nm">'+esc(r[1])+(u?EXTICON:'')+'</span>'+
+      '<span class="ct'+(r[4]?' soon':'')+'">'+esc(campusMeta(r))+'</span></span></a>';
+  }
+
+  return head([["Home","#/"],["School brands","#/brands"],[b[1],null]],
+      '<b>'+esc(b[1])+'</b>', b[5],
+      lg ? '<span class="bmk"><img src="'+LOGOS[lg]+'" alt="'+esc(b[1])+
+           ' logo" style="height:'+markHeight(b[0],26000)+'px"></span>' : '')+
+    /* No brand band photo. The placeholder set has eleven pictures and GEMS
+       Millennium School alone has seven campuses, so whichever one the band
+       used was already a card below it. The grid is the imagery. */
+    blk("",'<div class="glance">'+facts.filter(function(t){ return t[1]; })
+      .map(function(t){
+        return '<div><span class="k">'+esc(t[0])+'</span><span class="v">'+
+          esc(t[1])+'</span></div>'; }).join("")+'</div>')+
     blk("alt",lead('<b>'+camp.length+'</b> '+(camp.length===1?'campus':'campuses')+'.')+
-      '<div class="rows">'+camp.map(function(r){
-        return '<a class="row" href="'+campusHref(r)+'"'+campusAttr(r)+'>'+
-          '<span class="nm">'+esc(r[1])+'</span>'+
-          '<span class="mid">'+esc(r[2])+' India</span>'+
-          '<span class="end'+(r[4]?' soon':'')+'">'+
-          (r[4]?'Opening 2026':'View campus')+'</span></a>';}).join("")+'</div>');
+      '<div class="grid3 cgrid" data-n="'+camp.length+'">'+
+        camp.map(card).join("")+'</div>');
 }
 
 /* a campus is a brand in a city. EuroSchool's equivalent page is the one a
@@ -3105,8 +3157,7 @@ function pCampus(sl){
   var c=campusBy(sl); if(!c) return p404();
   var r=c.r, b=c.b, city=r[1];
   var cur=curOfCampus(r);
-  var curList=(function(a){ var q=a.slice(), last=q.pop();
-    return q.length ? q.join(", ")+" and "+last : last; })(cur);
+  var curList=andList(cur);
   var open=!r[4];
   var inCity=network().filter(function(x){ return x[1]===city; });
   var sameBrand=network().filter(function(x){ return x[0]===r[0] && x[1]!==city; });
@@ -3723,6 +3774,7 @@ function pArticle(s){
    One observer per render. Sections rise as they enter; grids stagger their
    own children. Figures count up, and always settle on the exact published
    string, so the real number is what sits in the DOM for a crawler. */
+var SWEEP=null;
 var IOBS=null;
 
 function countUp(node){
@@ -3747,6 +3799,7 @@ function countUp(node){
 
 function wireMotion(){
   if(IOBS){ IOBS.disconnect(); IOBS=null; }
+  if(SWEEP){ removeEventListener("scroll",SWEEP); SWEEP=null; }
   if(!window.IntersectionObserver) return;
   if(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
@@ -3783,6 +3836,27 @@ function wireMotion(){
     if(u[1]) u[0].style.transitionDelay=(u[1]*70)+"ms";
     IOBS.observe(u[0]);
   });
+
+  /* An instant jump past a unit delivers no intersection for it, and nothing
+     would ever reveal it afterwards: the End key, a dragged scrollbar or a
+     trackpad fling left the first three GEMS Millennium campuses at opacity 0
+     permanently. Anything the viewport has already passed is simply shown. */
+  function sweep(){
+    units.forEach(function(u){
+      var n=u[0];
+      if(n.classList.contains("rvin") || n.getBoundingClientRect().bottom >= 0) return;
+      n.style.transitionDelay="0ms";
+      n.classList.add("rvin");
+      [].slice.call(n.querySelectorAll(".cnt")).forEach(countUp);
+      IOBS.unobserve(n);
+    });
+  }
+  var pending=0;
+  SWEEP=function(){
+    if(pending) return;
+    pending=requestAnimationFrame(function(){ pending=0; sweep(); });
+  };
+  addEventListener("scroll",SWEEP,{passive:true});
 }
 
 function wireNews(){
