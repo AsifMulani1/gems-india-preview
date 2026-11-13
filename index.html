@@ -219,6 +219,9 @@ button,a{font:inherit;color:inherit;background:none;border:0;text-decoration:non
   color:rgba(255,255,255,0.62)}
 .atlas .copy .more b{font-weight:600;color:#7FD3F5}
 .atlas .pins .apin.dev .dot{fill:none;stroke:#00A3E0;stroke-width:3;r:7}
+/* same rule as the finder: weight, not tint, so the number stays legible */
+.atlas .pins .apin .alab .cn{font-weight:700}
+.atlas .pins .apin .alab .cd{font-weight:400;font-size:.92em}
 .atlas .pins .apin.dev{opacity:.76}
 .atlas .pins .apin.dev:hover{opacity:1}
 .atlas .copy.on .leg{transition-delay:200ms}
@@ -728,6 +731,12 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .mo .smap.drawing .land path{fill-opacity:0;stroke:#4D4D4D;stroke-width:1.4;transition:none}
 .mo .smap .land path{transition:fill-opacity .6s ease}
 .clab{fill:rgba(0,43,100,.7);font-size:20px;font-weight:600;pointer-events:none}
+/* the count rides the label rather than the dot: a number inside a ten unit
+   circle is unreadable, and beside the name it is where the eye already is.
+   Open and coming are told apart by weight, not by tint: a paler blue put "+9"
+   at 2.53:1 on the map frame, which no exemption covers at this rendered size. */
+.spin .clab .cn{font-weight:700}
+.spin .clab .cd{font-weight:400;font-size:.92em}
 .spin.sel .clab{fill:var(--navy)}
 .spin{cursor:pointer}
 .spin circle.h{fill:var(--line);opacity:0;transition:opacity .22s}
@@ -2057,18 +2066,28 @@ function buildAtlas(){
   var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var byCity=cityCounts(network(),PIPELINE);
+  /* one pin per metropolitan region, same as the finder */
+  var byPin=pinCounts(byCity);
   /* eleven of the twelve cities hold one campus, so a city page there is a click
      that only points at the school the parent already chose. Same rule as the finder:
      a hub exists when it has two or more children. */
+  function pinHref(k){
+    var o=byPin[k];
+    if(o.devonly) return "#/waitlist";
+    /* a merged pin has no city page of its own: Mumbai covers four places, and
+       /city/mumbai is not a route. The finder is where those four resolve. */
+    if(isMetro(k)) return "#/schools";
+    return o.n===1 ? campusHref(o.one) : "#/city/"+cslug(k);
+  }
   function cityHref(c){
     var o=byCity[c];
     if(o.devonly) return "#/waitlist";
     return o.n===1 ? campusHref(o.one) : "#/city/"+cslug(c);
   }
   /* south to north, so the sequence sweeps up the country */
-  var names=Object.keys(byCity).filter(function(c){return MAP.pts[c];})
+  var names=Object.keys(byPin).filter(function(c){return MAP.pts[c];})
     .sort(function(a,b){return MAP.pts[b][1]-MAP.pts[a][1];});
-  var total=0; names.forEach(function(c){ total+=byCity[c].n; });
+  var total=0; names.forEach(function(c){ total+=byPin[c].n; });
 
   /* Every pin carried a transparent r=40 hit circle, 28px across on a phone, while
      Mumbai and Kalyan sit 3px apart and Jodhpur, Gurugram and Ghaziabad cluster.
@@ -2126,16 +2145,16 @@ function buildAtlas(){
     '<g class="land">'+MAP.paths.map(function(d){return '<path d="'+d+'"/>';}).join("")+'</g>'+
     '<g class="pins">'+names.map(function(c,i){
       var p=POS[c], west=labelWest(c);
-      var one=byCity[c].n===1 ? byCity[c].one : null;
-      var o=byCity[c];
+      var o=byPin[c];
+      var one=(o.n===1 && !isMetro(c)) ? o.one : null;
       return '<a class="apin'+(o.soon?" soon":"")+(o.devonly?" dev":"")+
-        '" href="'+cityHref(c)+'"'+(one?campusAttr(one):'')+' '+
+        '" href="'+pinHref(c)+'"'+(one?campusAttr(one):'')+' '+
         'transform="translate('+p[0]+','+p[1]+')" aria-label="'+c+', '+o.all+' school'+
         (o.all===1?'':'s')+(o.devonly?' in development':'')+'">'+
         '<circle class="halo" r="30"/><circle class="dot" r="10"/>'+
         '<circle class="hit" r="'+hitR(c).toFixed(1)+'"/>'+
         '<text class="alab'+(west?" w":"")+'" x="'+(west?-22:22)+'" y="9">'+
-        mapLabel(c,names)+'</text></a>';
+        mapLabel(c,names)+pinNum(o)+'</text></a>';
     }).join("")+'</g></svg>';
 
   /* labels on neighbouring cities overlap, so nudge them apart once */
@@ -2160,8 +2179,12 @@ function buildAtlas(){
   var CAP=12;
   var pills=document.getElementById("atlasPills");
   /* sorted on what the pill says, not on the stored string, or Mumbai files under V */
-  var shown=names.filter(function(c){ return byCity[c].n; }).sort(function(a,b){
-    var x=mapLabel(a,names), y=mapLabel(b,names);
+  /* the pins are metros and the pills are cities, so the pill order has to be
+     read against the pills: labelled against the pins, Vikhroli kept its comma,
+     filed under V and dropped off the end of the strip */
+  var shown=Object.keys(byCity).filter(function(c){ return byCity[c].n; });
+  shown.sort(function(a,b){
+    var x=mapLabel(a,shown), y=mapLabel(b,shown);
     return x<y?-1:x>y?1:0; });
   pills.innerHTML=shown.slice(0,CAP).map(function(c){
     /* eleven of twelve would read "1", which tells a parent nothing */
@@ -2209,8 +2232,8 @@ function buildAtlas(){
       g.style.opacity=t.toFixed(3);
       g.style.setProperty("--s",(0.4+0.6*ease(t)).toFixed(3));
       g.classList.toggle("lit",t>=1);
-      if(t>0.45){ camp+=byCity[names[i]].n; dev+=byCity[names[i]].dev;
-                  if(byCity[names[i]].n) cty++; }
+      if(t>0.45){ var o=byPin[names[i]]; camp+=o.n; dev+=o.dev;
+                  cty+=o.cities.filter(function(c){ return byCity[c].n; }).length; }
     });
     nN.textContent=camp; nC.textContent=cty;
     if(nD) nD.textContent=dev;
@@ -2399,8 +2422,8 @@ function pipelineList(){
    have only a pipeline. allCities() stays campuses only, because it also answers
    "is /city/<slug> a page", and Hyderabad has nothing to put on one. */
 function mapCities(){
-  var m={}; network().forEach(function(r){ m[r[1]]=1; });
-  PIPELINE.forEach(function(p){ m[p[0]]=1; });
+  var m={}; network().forEach(function(r){ m[metroOf(r[1])]=1; });
+  PIPELINE.forEach(function(p){ m[metroOf(p[0])]=1; });
   return Object.keys(m).sort();
 }
 
@@ -2653,6 +2676,50 @@ function cityCounts(rows,pipe){
   });
   return m;
 }
+/* Mumbai, Vikhroli, Thane and Kalyan sit inside nine map units of one another.
+   Spreading them apart gave four labels radiating from one point on four crossing
+   leader lines, which does not read as a map at any zoom, and at fifty campuses
+   there will be more regions like it. So pins in one metropolitan region draw as
+   one pin with the count beside its name, and the panel still names every place.
+   GEMS writes them this way itself: its own roster says "Kalyan, Mumbai".
+   Add a row here when another region gets this crowded. */
+var METRO=[["Mumbai",["Mumbai","Vikhroli, Mumbai","Thane","Kalyan"]]];
+function metroOf(city){
+  for(var i=0;i<METRO.length;i++)
+    if(METRO[i][1].indexOf(city)>-1) return METRO[i][0];
+  return city;
+}
+/* What exists and what is coming, in that order and in different inks. A single
+   "11" beside a solid dot reads as eleven open schools in Mumbai, where two are
+   open and nine are a plan. This also saves the legend a fourth entry: the pin
+   stays Open, and the pale number is the part that is not. */
+function pinNum(o){
+  if(o.devonly) return o.dev>1 ? '<tspan class="cn"> '+o.dev+'</tspan>' : '';
+  return (o.n>1 ? '<tspan class="cn"> '+o.n+'</tspan>' : '')+
+         (o.dev ? '<tspan class="cd"> +'+o.dev+'</tspan>' : '');
+}
+function isMetro(k){
+  for(var i=0;i<METRO.length;i++) if(METRO[i][0]===k) return true;
+  return false;
+}
+/* one entry per pin rather than per city: counts summed, member cities kept so
+   the panel can still name each one */
+function pinCounts(byCity){
+  var m={};
+  Object.keys(byCity).forEach(function(c){
+    var k=metroOf(c), src=byCity[c];
+    var o=m[k]=m[k]||{n:0,dev:0,all:0,soon:true,rg:src.rg,one:null,cities:[]};
+    o.n+=src.n; o.dev+=src.dev; o.all+=src.all;
+    if(src.one && !o.one) o.one=src.one;
+    if(src.n && !src.soon) o.soon=false;
+    o.cities.push(c);
+  });
+  Object.keys(m).forEach(function(k){
+    var o=m[k]; if(!o.n){ o.soon=false; o.devonly=true; }
+    o.cities.sort();
+  });
+  return m;
+}
 function pipeMatches(p){
   var q=SFILTER.q.trim().toLowerCase();
   return (!q || p[0].toLowerCase().indexOf(q)>-1) &&
@@ -2864,19 +2931,20 @@ function campusMeta(r){
   return r[4] ? "Opening April 2027" : curOfCampus(r).join(" \u00b7 ");
 }
 function sPreviewHTML(city){
-  var camp=network().filter(function(r){return r[1]===city && sMatches(r);});
+  var camp=network().filter(function(r){return metroOf(r[1])===city && sMatches(r);});
   if(!camp.length) return "";
   var r=camp[0];
   return '<a class="prevw" href="'+campusHref(r)+'"'+campusAttr(r)+'>'+
     '<span class="ph"><img src="'+IMGS[r[3]]+'" alt="'+esc(r[0])+'"></span>'+
     '<span class="tx"><span class="nm">'+esc(r[0])+'</span>'+
-    '<span class="ct">'+esc(city)+(camp.length>1?' \u00b7 '+camp.length+' campuses':'')+
+    '<span class="ct">'+esc(r[1])+(camp.length>1?' \u00b7 '+camp.length+' campuses':'')+
     '</span></span></a>';
 }
 
 function sPaint(){
   var hit=network().filter(sMatches), pipe=PIPELINE.filter(pipeMatches);
   var byCity=cityCounts(hit,pipe);
+  var byPin=pinCounts(byCity);
   var devN=pipe.reduce(function(t,p){ return t+p[2]; },0);
 
   var regions=["All"];
@@ -2890,13 +2958,13 @@ function sPaint(){
      so the plot carries geography through position and region labels instead */
   /* outline: datameet india-composite, which shows India's full claimed territory
      (reaches 37.10N). Do not swap this for an international-boundary dataset. */
-  var label = Object.keys(byCity).length <= 20;
+  var label = Object.keys(byPin).length <= 20;
   /* only a narrowing filter zooms; All India always shows the country */
   var narrowed = SFILTER.rg!=="All" || (SFILTER.q||"").trim()!=="";
   var box=el("smap").getBoundingClientRect();
   var frameAR = box.width>0 && box.height>0 ? box.width/box.height : MAPDATA.W/MAPDATA.H;
   var view = narrowed
-    ? viewFor(Object.keys(byCity).map(function(c){return MAPDATA.pts[c];}).filter(function(p){return p;}),frameAR)
+    ? viewFor(Object.keys(byPin).map(function(c){return MAPDATA.pts[c];}).filter(function(p){return p;}),frameAR)
     : fitFull(frameAR);
   var k = view[2]/MAPDATA.W;
   var svg='<svg viewBox="'+(SVIEW||view).join(" ")+'" role="img" aria-label="Map of GEMS schools in India">'+
@@ -2906,14 +2974,16 @@ function sPaint(){
   var POS=spreadPins(order,k);
   order.forEach(function(city,i){
     var p=POS[city]||MAPDATA.pts[city];
-    var on=byCity[city], soon=on?on.soon:false;
+    var on=byPin[city], soon=on?on.soon:false;
     svg+='<g class="spin'+(soon?" soon":"")+(on&&on.devonly?" dev":"")+
       (on?"":" dim")+(SSEL===city?" sel":"")+
       '" data-city="'+city+'" data-x="'+p[0].toFixed(2)+'" data-y="'+p[1].toFixed(2)+
       '" tabindex="0" style="--i:'+i+'" transform="translate('+p[0]+','+p[1]+')">'+
       '<circle class="h" r="'+(30*k).toFixed(2)+'"/><circle class="d" r="'+(10*k).toFixed(2)+'"/>'+
       (label&&on?'<text class="clab" x="'+(18*k).toFixed(2)+'" y="'+(5*k).toFixed(2)+
-        '" style="font-size:'+(21*k).toFixed(2)+'px">'+esc(mapLabel(city,order))+'</text>':'')+
+        '" style="font-size:'+(21*k).toFixed(2)+'px">'+esc(mapLabel(city,order))+
+        /* a count only where it says something: "1" on twelve pins is noise */
+        pinNum(on)+'</text>':'')+
       '<circle r="'+(30*k).toFixed(2)+'" fill="transparent"/></g>';
   });
   svg+='</svg><div class="stip" id="stip"></div>';
@@ -2932,15 +3002,15 @@ function sPaint(){
     var city=g.dataset.city;
     g.addEventListener("mouseenter",function(){
       var r=g.getBoundingClientRect(), w=wrap.getBoundingClientRect();
-      tip.textContent=city+" \u00b7 "+(byCity[city]?byCity[city].all:0)+
-        (byCity[city]&&byCity[city].devonly?" in development":"");
+      tip.textContent=city+" \u00b7 "+(byPin[city]?byPin[city].all:0)+
+        (byPin[city]&&byPin[city].devonly?" in development":"");
       tip.style.left=(r.left-w.left+r.width/2)+"px";
       tip.style.top=(r.top-w.top+r.height/2)+"px";
       tip.classList.add("on");
     });
     function preview(){
-      var pv=el("sprev"); if(!pv || !byCity[city]) return;
-      pv.innerHTML = byCity[city].devonly ? sDevHTML(city) : sPreviewHTML(city);
+      var pv=el("sprev"); if(!pv || !byPin[city]) return;
+      pv.innerHTML = byPin[city].devonly ? sDevHTML(city) : sPreviewHTML(city);
     }
     g.addEventListener("mouseenter",preview);
     g.addEventListener("focus",preview);
@@ -2953,9 +3023,13 @@ function sPaint(){
   });
 
   var panel=el("spanel");
-  if(SSEL && byCity[SSEL]){
-    var o=byCity[SSEL];
-    var camp=network().filter(function(r){return r[1]===SSEL && sMatches(r);});
+  if(SSEL && byPin[SSEL]){
+    var o=byPin[SSEL];
+    var camp=network().filter(function(r){return metroOf(r[1])===SSEL && sMatches(r);});
+    /* "Mumbai" now covers Vikhroli, Kalyan and Thane, so a row that named only the
+       school would not tell a Kalyan parent which school is theirs */
+    var wide=o.cities.length>1;
+    var devHere=pipe.filter(function(p){ return metroOf(p[0])===SSEL; });
     panel.innerHTML=(camp.length
         ? '<span class="ph"><img src="'+IMGS[camp[0][3]]+'" alt="'+esc(SSEL)+'"></span>'
         : '')+
@@ -2965,13 +3039,17 @@ function sPaint(){
         var u=campusSite(r);
         return '<div class="clr"><a class="cin" href="'+campusHref(r)+'"'+campusAttr(r)+
           (u?' title="'+esc(siteHost(u))+'"':'')+'>'+esc(r[0])+
-          '<em'+(r[4]?' class="soon"':'')+'>'+esc(campusMeta(r))+'</em>'+
+          '<em'+(r[4]?' class="soon"':'')+'>'+
+            esc((wide?r[1]+" \u00b7 ":"")+campusMeta(r))+'</em>'+
           (u?EXTICON:'')+'</a></div>';}).join("")+
         /* a city with schools on the way owes the parent that fact and a way in,
            not silence because the schools have no names yet */
         (o.dev ? '<div class="clr"><a class="cin dev" href="#/waitlist">'+
           o.dev+' more '+(o.dev===1?'school':'schools')+' in development'+
-          '<em class="soon">Join the waitlist</em></a></div>' : '')+
+          '<em class="soon">'+esc(wide&&devHere.length
+            ? andList(devHere.map(function(p){
+                return p[2]>1 ? p[0]+" ("+p[2]+")" : p[0]; }))
+            : "Join the waitlist")+'</em></a></div>' : '')+
       '</div>';
   } else {
     var cities=Object.keys(byCity).filter(function(c){ return byCity[c].n; }).length;
@@ -3000,7 +3078,8 @@ function sPaint(){
 /* the hover readout for a city that has only a pipeline: no photo to show, because
    there is no school to photograph */
 function sDevHTML(city){
-  var o=cityCounts([],PIPELINE.filter(function(p){ return p[0]===city; }))[city];
+  var o=pinCounts(cityCounts([],
+    PIPELINE.filter(function(p){ return metroOf(p[0])===city; })))[city];
   if(!o) return sPreviewEmpty();
   return '<a class="prevw dev" href="#/waitlist">'+
     '<span class="ph"></span><span class="tx">'+
