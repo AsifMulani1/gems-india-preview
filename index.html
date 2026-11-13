@@ -816,6 +816,8 @@ sup.fm{font-size:.48em;font-weight:700;vertical-align:super;color:var(--line);pa
 .slist .sidxn a:hover{color:#00A3E0}
 
 /* a page that asks for something should still say where else a family can go */
+/* on /schools the block follows the campus index rather than its own section */
+.smap-wrap .wnext{padding-top:clamp(40px,5vw,72px)}
 .wnext h2{margin:0;font-size:clamp(20px,2.3vw,30px);font-weight:300;letter-spacing:-.028em;
   color:var(--navy)}
 .wnext h2 b{font-weight:700}
@@ -2297,7 +2299,9 @@ var REAL=[
  ["GEMS School of Excellence","Jodhpur","West","global",0,"CBSE","Age 2+ to Grade 9"],
  ["Little GEMS","Kochi","South","play",0,"Creche and Daycare","Early years"],
  ["Life Valley International School","Kottayam","South","corridor",0,"CBSE",""],
- ["Dream India School","Tuni","South","chem",0,"CBSE",""],
+ /* State Board, not CBSE: the two Dream India campuses do not teach the same
+    board, and the brand line used to average them into one. */
+ ["Dream India School","Tuni","South","chem",0,"State Board",""],
  ["Dream India School","Tiruvuru","South","library",0,"CBSE",""]
 ];
 /* The page each campus actually publishes, read off gemseducationindia.com and
@@ -2322,7 +2326,8 @@ var CAMPUSSITE={
  "GEMS School of Excellence|Jodhpur":"https://gemseducationindia.com/school-of-excellence-jodhpur/",
  "Little GEMS|Kochi":"https://www.littlegemskochi.in/",
  "Life Valley International School|Kottayam":"https://www.lifevalley.in/",
- "Dream India School|Tuni":"https://dreamindia.com/",
+ /* Tuni is deliberately absent. dreamindia.com is the Tiruvuru campus alone,
+    down to its title, so linking Tuni to it sent a parent to another school. */
  "Dream India School|Tiruvuru":"https://dreamindia.com/"
 };
 /* a campus invented by the scale preview has no website, and must not borrow one */
@@ -2351,6 +2356,18 @@ var GROW=[["Noida","North"],["Faridabad","North"],["Jaipur","North"],["Chandigar
 ["Kolkata","East"],["Bhubaneswar","East"],["Guwahati","East"],["Patna","East"],["Ranchi","East"],["Siliguri","East"],
 ["Bhopal","Central"],["Indore","Central"],["Nagpur","Central"],["Jabalpur","Central"],
 ["Gwalior","Central"],["Bilaspur","Central"]];
+/* GEMS' development pipeline, as supplied 13 Nov 2026. Fourteen further schools
+   are committed but not announced: no name, no brand, no board and no address,
+   so they are counted by city rather than invented into campuses with pins. The
+   15 on the map plus these 14 are the 29 schools GEMS quotes. */
+var PIPELINE=[["Mumbai",7],["Hyderabad",2],["Thane",1],["Kalyan",1],["Goa",1],
+  ["Kochi",1],["Thiruvananthapuram",1]];
+function pipelineN(){ return PIPELINE.reduce(function(n,p){ return n+p[1]; },0); }
+function pipelineList(){
+  return andList(PIPELINE.map(function(p){
+    return p[1]>1 ? p[0]+" ("+p[1]+")" : p[0]; }));
+}
+
 var GBRAND=["GEMS Modern Academy","GEMS Millennium School","GEMS School of Excellence"];
 var GPIC=["modern","dance","excellence","micro","millennium","skate","play","chem","library","corridor"];
 var SCALE=REAL.length;   /* the preview starts at the real network, whatever its size */
@@ -2396,7 +2413,7 @@ var BRANDS=[
  ["life-valley-international-school","Life Valley International School","",[],"corridor",
   "A CBSE school in Kottayam, Kerala, part of the GEMS Education India network."],
  ["dream-india-school","Dream India School","",[],"chem",
-  "CBSE schools at Tuni and Tiruvuru in Andhra Pradesh."],
+  "Two Andhra Pradesh campuses: CBSE at Tiruvuru, State Board at Tuni."],
 ];
 
 /* Curriculum and city list are read off the campuses rather than typed here, so a
@@ -2559,6 +2576,15 @@ function pSchools(){
       '<p class="sidxn"><span>By city</span>'+rcity.map(function(c){
         return '<a href="#/city/'+slug(c)+'">'+esc(c)+'</a>';}).join("")+'</p>'+
     '</div>'+
+    /* A parent in Hyderabad or Goa searches, finds nothing and leaves. There is
+       something true to tell them, so long as it is told as a pipeline and not as
+       a campus: no pin, no page, no board, and the waitlist as the way to be told. */
+    '<div class="wnext"><h2><b>'+pipelineN()+'</b> more schools are in development.</h2>'+
+      '<p class="sub">'+esc(pipelineList())+'. Names, boards and addresses for these '+
+      'are not announced yet, which is why they carry no pin on the map. Join the '+
+      'admission waitlist and the nearest admissions office will come back to you.</p>'+
+      '<p class="lnks"><a class="go" href="#/waitlist">Join the admission waitlist</a>'+
+      '<a href="#/brands">The '+BRANDS.length+' school brands</a></p></div>'+
   '</div></section>';
 }
 
